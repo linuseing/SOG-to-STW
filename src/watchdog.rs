@@ -5,7 +5,7 @@ use std::time::Duration;
 
 pub enum StatusMsg {
     Alive,
-    Dead
+    Dead,
 }
 
 pub fn run_forever(func: fn(mpsc::Sender<StatusMsg>), timeout: u64) -> ! {
@@ -18,20 +18,18 @@ pub fn run_forever(func: fn(mpsc::Sender<StatusMsg>), timeout: u64) -> ! {
 
     loop {
         match rx.recv_timeout(Duration::from_secs(timeout)) {
-            Ok(msg) => {
-                match msg {
-                    StatusMsg::Alive => {
-                        continue;
-                    }
-                    StatusMsg::Dead => {
-                        println!("Process signaled unrecoverable error. Restarting worker thread!");
-                        let tx2 = tx.clone();
-                        thread::spawn(move || {
-                            func(tx2);
-                        });
-                    }
+            Ok(msg) => match msg {
+                StatusMsg::Alive => {
+                    continue;
                 }
-            }
+                StatusMsg::Dead => {
+                    println!("Process signaled unrecoverable error. Restarting worker thread!");
+                    let tx2 = tx.clone();
+                    thread::spawn(move || {
+                        func(tx2);
+                    });
+                }
+            },
             Err(_) => {
                 println!("Worker not responding. Restarting application!");
                 exit(0);
